@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ArrowLeft, Heart } from "lucide-react"
 import { EASY_MEDS } from "@/lib/config"
 import { AGENTS, RULES } from "@/lib/interactions"
+import { NUTRIENT_LIMITS } from "@/lib/nutrient-limits"
 
 export const metadata = { title: "About" }
 
@@ -37,11 +38,24 @@ export default function AboutPage() {
             <strong>Double-ups</strong> — the same ingredient appearing in two products, which is how accidental overdoses happen.
           </li>
           <li>
+            <strong>Daily totals</strong> — {NUTRIENT_LIMITS.length} vitamins, minerals and OTC drugs are added up across everything scheduled for that day, so two products that each look fine alone still get caught if the combined total goes over the daily guideline.
+          </li>
+          <li>
             <strong>FDA label text</strong> — the “drug interactions” and “warnings” sections of the official US label are fetched from openFDA and searched for the other items on the list.
           </li>
         </ol>
         <p>
-          Entering the <strong>active ingredients</strong> from the label makes all three far more accurate, especially for supplements and herbal blends.
+          Entering the <strong>active ingredients, with their amount per tablet or capsule</strong>, makes all of this far more accurate — especially for supplements, combination products and herbal blends. Scanning the label fills this in for you.
+        </p>
+      </section>
+
+      <section className="space-y-2 text-sm leading-relaxed">
+        <h2 className="text-xs font-extrabold uppercase tracking-[0.18em] text-muted-foreground">What isn’t built in yet</h2>
+        <p>
+          How a person is feeling on a given day — run down, short on sleep, fighting something off — can change how their body handles a
+          borderline dose. That’s real, but too personal and variable to turn into a reliable rule, so Easy Meds doesn’t attempt to score
+          it. The daily totals above are a fixed guideline for a generally healthy adult; treat them as a prompt to think twice, not a
+          verdict, and weigh in how you’re actually feeling yourself.
         </p>
       </section>
 

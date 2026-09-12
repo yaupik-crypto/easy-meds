@@ -7,6 +7,8 @@ import { Plus, Search, ShieldCheck, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useEasyMeds } from "@/lib/store"
+import { parseIngredientsText } from "@/lib/ingredient-parse"
+import type { IngredientAmount } from "@/lib/types"
 import { findAllClashes } from "@/lib/interactions"
 import { ClashResults, useClashReport } from "@/components/clash-check"
 import { SeverityBadge, severityStyle } from "@/components/severity"
@@ -24,10 +26,10 @@ export default function CheckPage() {
 
 function CheckPageInner() {
   const params = useSearchParams()
-  const { activePerson, medicationsFor } = useEasyMeds()
+  const { activePerson, medicationsFor, logsFor } = useEasyMeds()
   const [name, setName] = React.useState("")
   const [ingredientsText, setIngredientsText] = React.useState("")
-  const [submitted, setSubmitted] = React.useState<{ name: string; ingredients: string[] } | null>(null)
+  const [submitted, setSubmitted] = React.useState<{ name: string; ingredients: IngredientAmount[] } | null>(null)
   const [showAll, setShowAll] = React.useState(params.get("all") === "1")
 
   const existing = React.useMemo(
@@ -38,7 +40,8 @@ function CheckPageInner() {
     () => (submitted ? { id: "__check__", ...submitted } : null),
     [submitted],
   )
-  const report = useClashReport(candidate, existing, activePerson?.allergies)
+  const logs = React.useMemo(() => (activePerson ? logsFor(activePerson.id) : []), [activePerson, logsFor])
+  const report = useClashReport(candidate, existing, activePerson?.allergies, logs)
   const allClashes = React.useMemo(() => findAllClashes(existing), [existing])
 
   if (!activePerson) return <Welcome />
@@ -64,7 +67,7 @@ function CheckPageInner() {
           if (!n) return
           setSubmitted({
             name: n,
-            ingredients: ingredientsText.split(/[,\n]/).map((s) => s.trim()).filter(Boolean),
+            ingredients: parseIngredientsText(ingredientsText),
           })
           setShowAll(false)
         }}
@@ -82,7 +85,7 @@ function CheckPageInner() {
         <Input
           value={ingredientsText}
           onChange={(e) => setIngredientsText(e.target.value)}
-          placeholder="Ingredients, comma separated (optional, e.g. cinnamon bark, jujube, vitamin B1)"
+          placeholder="Ingredients with amount if you know it (e.g. vitamin C 500mg, zinc 10mg, jujube)"
         />
         <Button type="submit" className="w-full font-bold" disabled={!name.trim()}>Check</Button>
       </form>

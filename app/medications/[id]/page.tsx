@@ -36,7 +36,8 @@ export default function MedicationDetailPage() {
     () => (med ? data.medications.filter((m) => m.personId === med.personId && m.id !== med.id && m.status !== "stopped") : []),
     [data.medications, med],
   )
-  const report = useClashReport(med && !editing ? med : null, others, owner?.allergies)
+  const personLogs = React.useMemo(() => (med ? logsFor(med.personId) : []), [med, logsFor])
+  const report = useClashReport(med && !editing ? med : null, others, owner?.allergies, personLogs)
 
   if (!med) {
     return (

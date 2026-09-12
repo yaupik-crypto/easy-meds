@@ -12,6 +12,7 @@ import { Welcome } from "@/components/welcome"
 import { DoseCard } from "@/components/dose-card"
 import { SeverityBadge } from "@/components/severity"
 import { InstallHint } from "@/components/install-hint"
+import { DailyTotals } from "@/components/daily-totals"
 import { TourSlot } from "@/components/tour"
 import { toast } from "sonner"
 
@@ -117,6 +118,8 @@ export default function TodayPage() {
           <ChevronRight className="size-4 text-muted-foreground" />
         </Link>
       )}
+
+      <DailyTotals meds={active} logs={logs} dateKey={dateKey} />
 
       {!data.settings.remindersEnabled && active.length > 0 && (
         <button

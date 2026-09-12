@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Plus, X } from "lucide-react"
+import { IngredientUnitSchema, type IngredientAmount, type IngredientUnit } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -34,6 +35,7 @@ export function emptyMedForm(): MedFormValue {
     strength: "",
     dose: "1 tablet",
     ingredients: [],
+    unitsPerDose: 1,
     schedule: { type: "daily", times: ["08:00"] },
     foodRule: "any",
     foodGapMinutes: undefined,
@@ -63,7 +65,11 @@ export function MedForm({
 }) {
   const set = <K extends keyof MedFormValue>(key: K, v: MedFormValue[K]) =>
     onChange({ ...value, [key]: v })
-  const [ingredientDraft, setIngredientDraft] = React.useState("")
+  const [ingDraft, setIngDraft] = React.useState<{ name: string; amount: string; unit: IngredientUnit }>({
+    name: "",
+    amount: "",
+    unit: "mg",
+  })
 
   const schedule = value.schedule
   const times = "times" in schedule ? schedule.times : []
@@ -86,11 +92,14 @@ export function MedForm({
   }
 
   const addIngredient = () => {
-    const v = ingredientDraft.trim()
-    if (!v) return
-    if (!value.ingredients.includes(v)) set("ingredients", [...value.ingredients, v])
-    setIngredientDraft("")
+    const name = ingDraft.name.trim()
+    if (!name) return
+    const amount = ingDraft.amount.trim() ? Number(ingDraft.amount) : undefined
+    const entry: IngredientAmount = amount && amount > 0 ? { name, amount, unit: ingDraft.unit } : { name }
+    set("ingredients", [...value.ingredients, entry])
+    setIngDraft({ name: "", amount: "", unit: ingDraft.unit })
   }
+  const removeIngredient = (i: number) => set("ingredients", value.ingredients.filter((_, j) => j !== i))
 
   return (
     <div className="space-y-6">
@@ -120,39 +129,73 @@ export function MedForm({
             <Input value={value.strength ?? ""} onChange={(e) => set("strength", e.target.value)} placeholder="500 mg" />
           </Field>
         </div>
-        <Field label="Each dose" hint="How much per dose">
-          <Input value={value.dose ?? ""} onChange={(e) => set("dose", e.target.value)} placeholder="1 tablet / 2 capsules / 5 ml" />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Each dose" hint="How much per dose, in words">
+            <Input value={value.dose ?? ""} onChange={(e) => set("dose", e.target.value)} placeholder="1 tablet / 2 capsules / 5 ml" />
+          </Field>
+          <Field label="Units per dose" hint="e.g. 2 if each dose is 2 tablets">
+            <Input
+              type="number"
+              min={0.25}
+              step={0.25}
+              value={value.unitsPerDose ?? 1}
+              onChange={(e) => set("unitsPerDose", Math.max(0.25, Number(e.target.value) || 1))}
+            />
+          </Field>
+        </div>
         <Field
           tour="ingredients"
           label="Active ingredients"
-          hint="Optional, but it makes the clash check much smarter — copy them from the label"
+          hint="Optional, but it makes the clash check much smarter. Enter the amount per single unit (one tablet/capsule) — copy it from the label."
         >
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[1fr_5.5rem_5rem_auto] gap-2">
             <Input
-              value={ingredientDraft}
-              onChange={(e) => setIngredientDraft(e.target.value)}
+              value={ingDraft.name}
+              onChange={(e) => setIngDraft({ ...ingDraft, name: e.target.value })}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
+                if (e.key === "Enter") {
                   e.preventDefault()
                   addIngredient()
                 }
               }}
-              placeholder="e.g. paracetamol, cinnamon bark"
+              placeholder="e.g. Vitamin C"
             />
+            <Input
+              type="number"
+              min={0}
+              step="any"
+              value={ingDraft.amount}
+              onChange={(e) => setIngDraft({ ...ingDraft, amount: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  addIngredient()
+                }
+              }}
+              placeholder="amount"
+            />
+            <Select value={ingDraft.unit} onValueChange={(v) => setIngDraft({ ...ingDraft, unit: v as IngredientUnit })}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {IngredientUnitSchema.options.map((u) => (
+                  <SelectItem key={u} value={u}>{u}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button type="button" variant="secondary" onClick={addIngredient} aria-label="Add ingredient">
               <Plus />
             </Button>
           </div>
           {value.ingredients.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {value.ingredients.map((ing) => (
-                <span key={ing} className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground">
-                  {ing}
+              {value.ingredients.map((ing, i) => (
+                <span key={`${ing.name}-${i}`} className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground">
+                  {ing.name}
+                  {ing.amount != null && <span className="text-accent-foreground/70">{ing.amount}{ing.unit ?? "mg"}</span>}
                   <button
                     type="button"
-                    aria-label={`Remove ${ing}`}
-                    onClick={() => set("ingredients", value.ingredients.filter((i) => i !== ing))}
+                    aria-label={`Remove ${ing.name}`}
+                    onClick={() => removeIngredient(i)}
                     className="rounded-full p-0.5 hover:bg-black/10"
                   >
                     <X className="size-3" />

@@ -6,7 +6,17 @@ export const LabelReadSchema = z.object({
   strength: z.string().describe("Strength per unit as printed, e.g. '500 mg', '1000 IU', '5 mg/5 ml'. Empty if not shown. Never guess."),
   dose: z.string().describe("Amount per dose in plain words, e.g. '1 tablet', '2 capsules', '5 ml'. Empty if not shown."),
   kind: z.enum(["prescription", "otc", "supplement", "unknown"]).describe("prescription = dispensed by a clinic/pharmacy with a patient name or doctor; otc = over-the-counter medicine; supplement = vitamin/herbal/nutritional product."),
-  ingredients: z.array(z.string()).describe("Active ingredients as printed, one per entry, without amounts. Empty if not shown."),
+  ingredients: z
+    .array(
+      z.object({
+        name: z.string().describe("Ingredient name as printed, e.g. 'Vitamin C', 'Paracetamol', 'Zinc'."),
+        amount: z.number().optional().describe("Amount of THIS ingredient in ONE tablet/capsule/unit dose, e.g. 500 for '500 mg'. Omit if not printed — never guess."),
+        unit: z.enum(["mg", "mcg", "g", "IU", "ml", "other"]).optional().describe("Unit for amount, e.g. 'mg', 'mcg', 'IU'. Omit if amount is omitted."),
+      }),
+    )
+    .describe(
+      "Active ingredients, one per entry. When the label lists a composition per unit (e.g. 'Each tablet contains: Vitamin C 500 mg, Zinc 10 mg'), capture the amount and unit for each — this lets the app add up daily totals across products. If only names are listed with no amounts, still list each name with amount omitted.",
+    ),
   timesPerDay: z.number().int().min(0).max(6).describe("How many times per day, from wording like 'twice daily', 'tid', '每日三次'. 0 if unknown or as-needed."),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).describe("Only if the label restricts to certain weekdays (0=Sunday). Usually empty."),
   everyNDays: z.number().int().min(0).describe("If taken every N days (e.g. weekly = 7). 0 if daily or unknown."),

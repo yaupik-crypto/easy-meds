@@ -124,7 +124,7 @@ export function findLabelMentions(
     const nameWords = other.name.toLowerCase().split(/[\s,()/-]+/).filter((w) => w.length > 3)
     nameWords.forEach((w) => terms.add(w))
     ;(other.ingredients ?? []).forEach((i) => {
-      const w = i.toLowerCase().trim()
+      const w = i.name.toLowerCase().trim()
       if (w.length > 3) terms.add(w)
     })
     matchAgents(other).forEach((a) => {

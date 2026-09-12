@@ -33,6 +33,7 @@ export const AGENTS: Agent[] = [
   { id: "antiplatelet", label: "antiplatelet drugs", keywords: ["clopidogrel", "plavix", "ticagrelor", "brilinta", "prasugrel", "dipyridamole"], labelTerms: ["antiplatelet"] },
   { id: "aspirin", label: "aspirin", keywords: ["aspirin", "acetylsalicylic", "asa "], labelTerms: ["salicylate"] },
   { id: "nsaid", label: "NSAID painkillers", keywords: ["ibuprofen", "advil", "nurofen", "naproxen", "aleve", "diclofenac", "voltaren", "celecoxib", "celebrex", "mefenamic", "ponstan", "meloxicam", "indomethacin", "ketorolac", "etoricoxib", "arcoxia"], labelTerms: ["nsaid", "nonsteroidal anti-inflammatory", "non-steroidal anti-inflammatory"] },
+  { id: "ibuprofen", label: "ibuprofen", keywords: ["ibuprofen", "advil", "nurofen", "brufen", "motrin"], labelTerms: ["ibuprofen"] },
   { id: "paracetamol", label: "paracetamol / acetaminophen", keywords: ["paracetamol", "acetaminophen", "panadol", "tylenol"], labelTerms: ["acetaminophen"] },
   { id: "ssri", label: "SSRI / SNRI antidepressants", keywords: ["sertraline", "zoloft", "fluoxetine", "prozac", "escitalopram", "lexapro", "citalopram", "paroxetine", "fluvoxamine", "venlafaxine", "effexor", "duloxetine", "cymbalta", "desvenlafaxine", "vortioxetine"], labelTerms: ["ssri", "snri", "serotonin reuptake", "antidepressant"] },
   { id: "maoi", label: "MAOI antidepressants", keywords: ["phenelzine", "tranylcypromine", "moclobemide", "selegiline", "isocarboxazid", "linezolid"], labelTerms: ["monoamine oxidase", "mao inhibitor", "maoi"] },
@@ -88,6 +89,10 @@ export const AGENTS: Agent[] = [
   { id: "vitamin_k", label: "vitamin K", keywords: ["vitamin k", "phytonadione", "menaquinone", "mk-7", "mk7"] },
   { id: "vitamin_a", label: "vitamin A", keywords: ["vitamin a", "retinol"] },
   { id: "vitamin_b12", label: "vitamin B12", keywords: ["b12", "cobalamin"] },
+  { id: "vitamin_c", label: "vitamin C", keywords: ["vitamin c", "ascorbic acid", "ascorbate"] },
+  { id: "vitamin_b6", label: "vitamin B6", keywords: ["vitamin b6", "pyridoxine"] },
+  { id: "folic_acid", label: "folic acid", keywords: ["folic acid", "folate"], labelTerms: ["folic acid"] },
+  { id: "niacin", label: "niacin (B3)", keywords: ["niacin", "nicotinamide", "niacinamide", "vitamin b3"] },
   { id: "ginseng", label: "ginseng", keywords: ["ginseng", "panax"] },
   { id: "dong_quai", label: "dong quai", keywords: ["dong quai", "angelica sinensis", "danggui"] },
   { id: "danshen", label: "danshen", keywords: ["danshen", "dan shen", "salvia miltiorrhiza"] },
@@ -269,7 +274,7 @@ const AGENT_BY_ID = new Map(AGENTS.map((a) => [a.id, a]))
 
 /** Which curated agents does this product match? */
 export function matchAgents(med: Pick<Medication, "name" | "ingredients">): Agent[] {
-  const hay = [med.name, ...(med.ingredients ?? [])]
+  const hay = [med.name, ...(med.ingredients ?? []).map((i) => i.name)]
     .join(" | ")
     .toLowerCase()
   return AGENTS.filter((a) => a.keywords.some((k) => hay.includes(k)))
@@ -342,13 +347,13 @@ export function findOverlaps(
   existing: Pick<Medication, "id" | "name" | "ingredients">[],
 ): OverlapFinding[] {
   const norm = (s: string) => s.trim().toLowerCase()
-  const candTokens = new Set([norm(candidate.name), ...(candidate.ingredients ?? []).map(norm)].filter(Boolean))
+  const candTokens = new Set([norm(candidate.name), ...(candidate.ingredients ?? []).map((i) => norm(i.name))].filter(Boolean))
   // Curated agents count as overlap too (e.g. "Panadol" and "paracetamol").
   const candAgentIds = new Set(matchAgents(candidate).map((a) => a.id))
   const out: OverlapFinding[] = []
   for (const other of existing) {
     if (other.id === candidate.id) continue
-    const otherTokens = [norm(other.name), ...(other.ingredients ?? []).map(norm)].filter(Boolean)
+    const otherTokens = [norm(other.name), ...(other.ingredients ?? []).map((i) => norm(i.name))].filter(Boolean)
     const shared = otherTokens.filter((t) => candTokens.has(t))
     const sharedAgents = matchAgents(other)
       .filter((a) => candAgentIds.has(a.id))
@@ -443,7 +448,7 @@ export function findAllergyMatches(
     .map((t) => t.trim().toLowerCase())
     .filter((t) => t.length >= 3)
   if (!phrases.length) return []
-  const hay = [candidate.name, ...(candidate.ingredients ?? [])].join(" | ").toLowerCase()
+  const hay = [candidate.name, ...(candidate.ingredients ?? []).map((i) => i.name)].join(" | ").toLowerCase()
   const agentIds = new Set(matchAgents(candidate).map((a) => a.id))
   const GENERIC = new Set(["drug", "drugs", "tablet", "tablets", "allergy", "allergic", "antibiotic", "antibiotics", "medicine", "medicines", "medication", "type", "based", "family", "group"])
   const termHits = (t: string) => {

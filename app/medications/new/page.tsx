@@ -24,7 +24,7 @@ export default function NewMedicationPage() {
 function NewMedicationInner() {
   const router = useRouter()
   const params = useSearchParams()
-  const { activePerson, medicationsFor, addMedication } = useEasyMeds()
+  const { activePerson, medicationsFor, logsFor, addMedication } = useEasyMeds()
   const [value, setValue] = React.useState<MedFormValue>(() => ({ ...emptyMedForm(), name: params.get("name") ?? "" }))
   const [step, setStep] = React.useState<"form" | "check">("form")
 
@@ -33,15 +33,19 @@ function NewMedicationInner() {
     [activePerson, medicationsFor],
   )
   const candidate = React.useMemo(
-    () => (step === "check" ? { id: "__new__", name: value.name, ingredients: value.ingredients } : null),
-    [step, value.name, value.ingredients],
+    () =>
+      step === "check"
+        ? { id: "__new__", name: value.name, ingredients: value.ingredients, unitsPerDose: value.unitsPerDose, schedule: value.schedule }
+        : null,
+    [step, value.name, value.ingredients, value.unitsPerDose, value.schedule],
   )
-  const report = useClashReport(candidate, existing, activePerson?.allergies)
+  const logs = React.useMemo(() => (activePerson ? logsFor(activePerson.id) : []), [activePerson, logsFor])
+  const report = useClashReport(candidate, existing, activePerson?.allergies, logs)
   useTourSignal("clash-shown", step === "check")
 
   if (!activePerson) return <Welcome />
 
-  const hasBlocking = report.curated.some((c) => c.severity === "avoid")
+  const hasBlocking = report.curated.some((c) => c.severity === "avoid") || report.allergies.length > 0 || report.cumulative.some((c) => c.severity === "avoid")
 
   const save = () => {
     addMedication({ ...value, personId: activePerson.id, name: value.name.trim() })
@@ -82,7 +86,7 @@ function NewMedicationInner() {
           </Button>
           {hasBlocking && (
             <p className="text-center text-xs text-muted-foreground">
-              An “avoid” clash was found. Please talk to a doctor or pharmacist before taking both.
+              An “avoid” finding was flagged above. Please talk to a doctor or pharmacist first.
             </p>
           )}
         </div>

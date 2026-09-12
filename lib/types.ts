@@ -57,6 +57,22 @@ export type Schedule = z.infer<typeof ScheduleSchema>
 export const MedStatusSchema = z.enum(["active", "paused", "stopped"])
 export type MedStatus = z.infer<typeof MedStatusSchema>
 
+export const IngredientUnitSchema = z.enum(["mg", "mcg", "g", "IU", "ml", "other"])
+export type IngredientUnit = z.infer<typeof IngredientUnitSchema>
+
+/**
+ * One active ingredient in a product, with the amount contained in ONE dose
+ * unit (one tablet / one capsule / one 5ml spoon — whatever "dose" below
+ * describes). This is what lets Easy Meds add up how much of something a
+ * person is really taking across everything on their list.
+ */
+export const IngredientAmountSchema = z.object({
+  name: z.string().min(1),
+  amount: z.number().positive().optional(),
+  unit: IngredientUnitSchema.optional(),
+})
+export type IngredientAmount = z.infer<typeof IngredientAmountSchema>
+
 export const MedicationSchema = z.object({
   id: z.string(),
   personId: z.string(),
@@ -64,7 +80,10 @@ export const MedicationSchema = z.object({
   kind: MedKindSchema,
   strength: z.string().optional(), // e.g. "500 mg"
   dose: z.string().optional(), // e.g. "1 tablet"
-  ingredients: z.array(z.string()).default([]),
+  /** Per-unit-dose ingredients, e.g. one tablet = Vitamin C 500 mg + Zinc 10 mg. */
+  ingredients: z.array(IngredientAmountSchema).default([]),
+  /** How many of that unit dose are taken each time (e.g. 2 tablets per dose). */
+  unitsPerDose: z.number().positive().default(1),
   schedule: ScheduleSchema,
   foodRule: FoodRuleSchema.default("any"),
   foodGapMinutes: z.number().int().optional(),

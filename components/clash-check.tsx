@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { CheckCircle2, ExternalLink, Loader2, Layers, ShieldAlert } from "lucide-react"
-import type { Medication } from "@/lib/types"
+import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Layers, ShieldAlert } from "lucide-react"
+import type { DoseLog, Medication, Schedule } from "@/lib/types"
 import {
   findAllergyMatches,
   findCuratedClashes,
@@ -13,16 +13,19 @@ import {
   type SoloCaution,
 } from "@/lib/interactions"
 import { fetchLabel, findLabelMentions, type LabelInfo, type LabelMention } from "@/lib/openfda"
+import { computeCumulativeFindings, impliedDosesToday, type CumulativeFinding } from "@/lib/cumulative"
+import { todayKey } from "@/lib/store"
 import { SeverityBadge, severityStyle } from "./severity"
 
-type Candidate = Pick<Medication, "id" | "name" | "ingredients">
-type Existing = Pick<Medication, "id" | "name" | "ingredients">
+type Candidate = Pick<Medication, "id" | "name" | "ingredients"> & { unitsPerDose?: number; schedule?: Schedule }
+type Existing = Medication
 
 export type ClashReport = {
   curated: ClashFinding[]
   overlaps: OverlapFinding[]
   allergies: string[]
   solo: (SoloCaution & { agentLabel: string })[]
+  cumulative: CumulativeFinding[]
   label: LabelInfo | null | undefined // undefined = still loading
   mentions: LabelMention[]
   labelError: string | null
@@ -32,6 +35,7 @@ export function useClashReport(
   candidate: Candidate | null,
   existing: Existing[],
   personAllergies?: string,
+  logs: DoseLog[] = [],
 ): ClashReport {
   const [label, setLabel] = React.useState<LabelInfo | null | undefined>(undefined)
   const [labelError, setLabelError] = React.useState<string | null>(null)
@@ -62,14 +66,17 @@ export function useClashReport(
   }, [name, ingredientsKey])
 
   return React.useMemo(() => {
-    if (!candidate) return { curated: [], overlaps: [], allergies: [], solo: [], label: null, mentions: [], labelError: null }
+    if (!candidate) return { curated: [], overlaps: [], allergies: [], solo: [], cumulative: [], label: null, mentions: [], labelError: null }
     const curated = findCuratedClashes(candidate, existing)
     const overlaps = findOverlaps(candidate, existing)
     const allergies = findAllergyMatches(candidate, personAllergies)
     const solo = findSoloCautions(candidate)
     const mentions = label ? findLabelMentions(label, existing) : []
-    return { curated, overlaps, allergies, solo, label, mentions, labelError }
-  }, [candidate, existing, label, labelError, personAllergies])
+    const dateKey = todayKey()
+    const dosesToday = candidate.schedule ? impliedDosesToday(candidate.schedule, dateKey) : 1
+    const cumulative = computeCumulativeFindings(candidate, dosesToday, existing, logs, dateKey)
+    return { curated, overlaps, allergies, solo, cumulative, label, mentions, labelError }
+  }, [candidate, existing, label, labelError, personAllergies, logs])
 }
 
 export function ClashResults({
@@ -81,9 +88,9 @@ export function ClashResults({
   candidateName: string
   compact?: boolean
 }) {
-  const { curated, overlaps, allergies, solo, label, mentions, labelError } = report
+  const { curated, overlaps, allergies, solo, cumulative, label, mentions, labelError } = report
   const nothingFound =
-    curated.length === 0 && overlaps.length === 0 && mentions.length === 0 && allergies.length === 0 && solo.length === 0
+    curated.length === 0 && overlaps.length === 0 && mentions.length === 0 && allergies.length === 0 && solo.length === 0 && cumulative.length === 0
   const loading = label === undefined
 
   return (
@@ -102,6 +109,32 @@ export function ClashResults({
           </p>
         </div>
       )}
+
+      {cumulative.map((f, i) => {
+        const s = severityStyle(f.severity)
+        const pct = Math.round((f.total / f.ul) * 100)
+        return (
+          <div key={`cum${i}`} className="em-pop rounded-xl border p-4" style={{ borderColor: s.color, background: s.bg }}>
+            <div className="flex flex-wrap items-center gap-2">
+              <SeverityBadge severity={f.severity} />
+              <span className="inline-flex items-center gap-1 text-sm font-bold">
+                <AlertTriangle className="size-3.5" /> Today’s {f.label}: {Math.round(f.total)} {f.unit}
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed">
+              {f.existingTotal > 0 && f.candidateContribution > 0
+                ? `${Math.round(f.existingTotal)} ${f.unit} already today + ${Math.round(f.candidateContribution)} ${f.unit} from this = ${Math.round(f.total)} ${f.unit}.`
+                : `This item alone comes to ${Math.round(f.total)} ${f.unit} today.`}{" "}
+              {f.severity === "avoid"
+                ? `That's over the ${f.ul} ${f.unit}/day guideline (${pct}%).`
+                : f.severity === "caution"
+                  ? `That's above the ${f.caution} ${f.unit} caution level (guideline limit is ${f.ul} ${f.unit}/day).`
+                  : `That's ${pct}% of the ${f.ul} ${f.unit}/day guideline — still under it, worth keeping an eye on.`}
+            </p>
+            <p className="mt-1.5 text-sm font-semibold" style={{ color: s.color }}>{f.note}</p>
+          </div>
+        )
+      })}
 
       {solo.map((c, i) => {
         const s = severityStyle(c.severity)

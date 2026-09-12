@@ -32,7 +32,15 @@ export function applyLabelRead(current: MedFormValue, r: LabelRead): MedFormValu
   if (r.strength) next.strength = r.strength
   if (r.dose) next.dose = r.dose
   if (r.kind !== "unknown") next.kind = r.kind
-  if (r.ingredients.length) next.ingredients = Array.from(new Set([...current.ingredients, ...r.ingredients]))
+  if (r.ingredients.length) {
+    const merged = [...current.ingredients]
+    for (const ing of r.ingredients) {
+      const i = merged.findIndex((m) => m.name.toLowerCase() === ing.name.toLowerCase())
+      if (i === -1) merged.push(ing)
+      else if (merged[i].amount == null && ing.amount != null) merged[i] = ing // fill in an amount we didn't have
+    }
+    next.ingredients = merged
+  }
   if (r.asNeeded) next.schedule = { type: "as_needed" }
   else if (r.everyNDays >= 2) next.schedule = { type: "every_n_days", every: r.everyNDays, anchor: current.startDate, times: TIMES_BY_COUNT[1] }
   else if (r.daysOfWeek.length) next.schedule = { type: "weekly", days: r.daysOfWeek, times: TIMES_BY_COUNT[Math.max(1, r.timesPerDay)] ?? TIMES_BY_COUNT[1] }
@@ -122,7 +130,12 @@ export function ScanLabel({
         ["Strength", read.strength],
         ["Each dose", read.dose],
         ["Type", read.kind !== "unknown" ? KIND_LABELS[read.kind] : ""],
-        ["Ingredients", read.ingredients.join(", ")],
+        [
+          "Ingredients",
+          read.ingredients
+            .map((i) => (i.amount != null ? `${i.name} ${i.amount}${i.unit ?? "mg"}` : i.name))
+            .join(", "),
+        ],
         [
           "How often",
           read.asNeeded

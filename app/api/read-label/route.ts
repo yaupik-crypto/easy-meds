@@ -14,7 +14,7 @@ const BodySchema = z.object({
 
 const SYSTEM = `You read photos of medication and supplement packaging for a personal medication organiser used in Hong Kong. Labels may be in English, Traditional Chinese, or both, and may be a pharmacy dispensing sticker, a hospital label, a retail box, or a supplement bottle.
 
-Extract only what is actually printed. Never invent a strength, dose or frequency: leave a field empty (or 0 / unknown) when it is not readable. Common abbreviations: od/qd = once daily, bd/bid = twice, tds/tid = three times, qid = four times, prn = as needed, nocte = at night, ac = before food, pc = after food. Chinese: 每日一次/兩次/三次 = 1/2/3 times daily, 飯前 = before food, 飯後 = after food, 空腹 = empty stomach, 需要時 = as needed, 睡前 = at bedtime.
+Extract only what is actually printed. Never invent a strength, dose, frequency or per-ingredient amount: leave a field empty (or 0 / unknown) when it is not readable. Supplements and combination products often list a "per tablet/capsule" or "per serving" breakdown (e.g. "Each tablet contains: Vitamin C 500 mg, Zinc 10 mg") — capture each ingredient with its own amount and unit exactly as printed for that single unit, since the app adds these up across everything a person takes. Common abbreviations: od/qd = once daily, bd/bid = twice, tds/tid = three times, qid = four times, prn = as needed, nocte = at night, ac = before food, pc = after food. Chinese: 每日一次/兩次/三次 = 1/2/3 times daily, 飯前 = before food, 飯後 = after food, 空腹 = empty stomach, 需要時 = as needed, 睡前 = at bedtime.
 
 If the photo is not a medication or supplement label, set confidence to low and explain in notes.`
 
