@@ -1,0 +1,162 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #fbf8f3;
+  --foreground: #22302b;
+  --card: #ffffff;
+  --card-foreground: #22302b;
+  --popover: #ffffff;
+  --popover-foreground: #22302b;
+  --primary: #2f6b5a;
+  --primary-foreground: #ffffff;
+  --secondary: #edf2ee;
+  --secondary-foreground: #22302b;
+  --muted: #f1ede6;
+  --muted-foreground: #6b746f;
+  --accent: #e6f0ea;
+  --accent-foreground: #1f4a3d;
+  --destructive: #c2413b;
+  --destructive-foreground: #ffffff;
+  --border: #e6e0d6;
+  --input: #e6e0d6;
+  --ring: #2f6b5a;
+  --radius: 1rem;
+
+  --chart-1: #2f6b5a;
+  --chart-2: #b8731f;
+  --chart-3: #3a6f9f;
+  --chart-4: #8e6ba8;
+  --chart-5: #c25b78;
+
+  --sidebar: #fbf8f3;
+  --sidebar-foreground: #22302b;
+  --sidebar-primary: #2f6b5a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6f0ea;
+  --sidebar-accent-foreground: #1f4a3d;
+  --sidebar-border: #e6e0d6;
+  --sidebar-ring: #2f6b5a;
+
+  /* Clash-severity colors used across the app */
+  --em-avoid: #c2413b;
+  --em-avoid-bg: #fbeae9;
+  --em-caution: #b8731f;
+  --em-caution-bg: #fdf1e2;
+  --em-info: #3a6f9f;
+  --em-info-bg: #e9f1f9;
+  --em-ok: #2f6b5a;
+  --em-ok-bg: #e6f0ea;
+}
+
+@theme inline {
+  --font-sans: var(--font-em-sans), 'Nunito', 'Nunito Fallback', ui-rounded, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 0.75rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-2xl: calc(var(--radius) + 0.5rem);
+  --radius-3xl: calc(var(--radius) + 1rem);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-em-sans), 'Nunito', 'Nunito Fallback', ui-rounded, system-ui, sans-serif;
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+}
+
+.em-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+}
+
+.em-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes em-pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.em-pop { animation: em-pop 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media print {
+  header.sticky,
+  nav,
+  .em-print-hide {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  body {
+    background: #fff;
+  }
+}
+
+/* Guided tour */
+.em-tour-target {
+  box-shadow: 0 0 0 3px var(--background), 0 0 0 7px var(--primary);
+  border-radius: 1rem;
+  position: relative;
+  z-index: 1;
+}
+.em-nav-card {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
+}
+
+/* Action buttons float only when there is room; on a short screen (keyboard open)
+   they sit in the flow so they never cover an input. */
+.em-sticky-action { position: static; }
+@media (min-height: 640px) {
+  .em-sticky-action { position: sticky; bottom: 6rem; }
+}
